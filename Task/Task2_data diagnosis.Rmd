@@ -1,0 +1,495 @@
+---
+title: "Task 2: 了解数据，数据诊断"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+
+# 导言
+
+在了解个人业务的基本业务情况之后，接下来需要了解个人业务基础数据结构。在实际工作中，我们遇到的数据往往是原始数据，这些数据一般都不是清晰完整的，比如可能出现数据缺失，ID不唯一的情况，不能直接用来建模。数据诊断工作帮助我们了解数据的缺陷，以便进一步的清理和整合数据。
+数据诊断可以从完整性，准确性，合理性等多个方面入手，诊断手段包括但不限于以下几种，比如单个变量的诊断，多个变量之间关系的诊断，不同表之间关系的诊断。下面举几个诊断的例子，让大家对于数据诊断工作有个感性的认识。
+
+1. 首先是单变量的完整性问题。有的客户的信用分数有缺失的，这种情况可能因为数据抽过程中数据缺失了，也有可能是这个客户本身在信用局就没有信用记录，需要区分这两种情况，代表的含义是不一样的。如果建模数据中有缺失值，就无法通过逻辑回归算法进行建模，必须将缺失值补全，或者删除有缺失值的记录，才能进行正常的建模。
+2. 其次是通过多个变量关系发现数据准确性问题。比如分析客户职业和收入数据关系，发现有的客户是正常的公司管理人员，并不是失业状态，但是收入填写的是年收入30元，有可能因为用户不愿透漏收入情况，也有可能是因为少填了“万”字，虽然这种数据没有缺失，但是也是不准确的。
+3. 还有通过表之间关联分析发现数据不合理的问题。比如在诊断交易账单表和客户表的关系时，可能会发现，在客户表里出现的客户号，没有在交易账户里出现过，这是合理的，因为有些客户开卡之后，并没有交易，所以在交易账单表里没有出现；但是如果在交易账单表里面的客户号，却没有出现在客户表里，就不合理了，任何一个正式用户都应该在客户表里保存，否则不可能进行正常的交易，这些不合理的客户需要从建模的样本剔除。
+
+在做数据诊断的过程中，一方面需要对于数据进行多方位统计，另一方面需要识别数据问题，这就需要理解业务流程和常识。在实际工作中，如果遇到不能理解的数据问题和特殊情况，需要及时和业务方沟通，了解实际情况，做到心中有数。
+
+
+# 任务 
+**Q1. ** 尝试对项目中提供的数据进行单变量诊断，生成诊断检查统计表.
+
+**环境准备:** 载入所需R包
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, highlight=TRUE}
+library(data.table)
+library(tidyverse)
+library(mlr)
+```
+
+#### **Step 1: 读入数据**
+
+待处理数据以csv文件给出，数据字典以xlsx文件给出。设定当前路径到数据所在文件夹，读取数据：
+
+```{r echo=TRUE, highlight=TRUE}
+path <- "E:/实习/信用卡管理/Task 2/data/"
+filepath <- list.files(path = path, pattern = ".csv", full.names = TRUE)
+filename <- gsub(pattern = ".csv", replacement = "", 
+                 list.files(path = path, pattern = ".csv"))
+  
+for (i in 1:length(filepath)) {
+  assign(filename[i], fread(input = filepath[i]) %>% as_tibble())
+}
+
+```
+
+#### **Step 2:数据去重**
+**1. 客户表(app_data)处理思路**
+
+app_data中的客户号应具有唯一性，首先针对ID列进行数据去重。经检查发现，有8个ID出现了2次，其中有5条数据是重复的，删除。其余3条数据仅与其同ID的数据在字段"AMT_INCOME_TOTAL"不同，均相差一位0，考虑是数据采集或录入出错，采取删除操作。
+```{r echo=TRUE, highlight=TRUE}
+# 查看原始数据样本数
+nrow(app_data)
+
+# 查看重复值
+dup_id <- app_data %>% group_by(ID) %>% mutate(count = n()) %>% filter(count > 1) %>% ungroup()
+dup_id
+dup_data <- dup_id[!duplicated(dup_id),]
+
+# 因为已经group过，所以每一个ID重复的数据都和它的上一条数据做对比
+diff_col <- list()
+for (i in which(duplicated(dup_data$ID,))) {
+  diff_col <- append(diff_col, colnames(dup_data)[which(dup_data[i, ] != dup_data[(i-1), ])])
+}
+diff_col
+
+# 其余3条ID重复的数据均在AMT_INCOME_TOTAL上有差异，查看发现都是少了一位0，
+# 判断为数据采集或者录入错误，删除ID重复数据。
+app_data <- app_data[!duplicated(app_data$ID), ]
+nrow(app_data)
+
+```
+
+去重之后的申请表(app_data)含有4050条数据，18个特征。
+
+**2. 交易表(app_data)处理思路**
+
+trans中账户号不具有唯一性，因为一个账户可以进行多次交易，只需查看是否有整条重复数据。
+
+```{r echo=TRUE, highlight=TRUE}
+trans <- trans[!duplicated(trans), ]
+nrow(trans)
+
+```
+
+去重之后的交易表(trans)含有1056214条数据，10个特征。
+
+
+
+
+#### **Step 3: 了解数据**
+**1. 客户表处理事项**：针对app_data进行单变量诊断，将结果输出保存到文件中。
+R中有很多函数支持数据概览，`mlr`包中的`summarizeColumns()`函数输出结果更全面，也更易读，输出内容包含变量名，变量类型，缺失值数量，均值，中位数，标准差，最大值，最小值等等。
+```{r highlight=TRUE, include=FALSE}
+summary_app <- summarizeColumns(app_data)
+```
+
+**(1) 分类变量**的分布统计，
+
+```{r highlight=TRUE, include=FALSE}
+cate_feature_app <- summary_app$name[summary_app$type == "character"]
+FLAG <- colnames(app_data)[grep("FLAG", colnames(app_data))]
+cate_feature_app <- union(cate_feature_app, FLAG)
+
+for (fea in cate_feature_app) {
+  sink("../summary_cate.txt", append = TRUE)
+  cat("The distribution of", fea, ": \n")
+  count <- table(app_data[[fea]], useNA = "ifany")
+  tab <- cbind(count = count, 
+               freq  = round(count / nrow(app_data), 3))
+  tab <- as.data.frame(tab)
+  print(tab)
+  cat("\n")
+  sink()
+}
+
+```
+将分类变量的类别分布情况整理为表格，如下所示：
+
+ : Table1: 客户表分类变量诊断情况统计.
+
++---------------+---------------+----------+-------------+
+| 变量名        | 类别          | 计数     | 频率        |
++===============+===============+==========+=============+
+|    性别       | - 男          | - 1387   |  - 65.8%    |
+|               | - 女          | - 2663   |  - 34.2%    |
++---------------+---------------+----------+-------------+
+| 是否有车      | - 否          | - 2531   | - 62.5%     |
+|               | - 是          | - 1519   | - 37.5%     |
++---------------+---------------+----------+-------------+
+| 是否有房产    | - 否          | - 1260   | - 31.1%     |
+|               | - 是          | - 2790   | - 68.9%     |
++---------------+---------------+----------+-------------+
+| 收入类别      | - 商业        | - 905    |  - 22.3%    |
+|               | - 退休金      | - 719    |  - 17.8%    |
+|               | - 公务员      | - 328    |  - 8.1%     |
+|               | - 务工        | - 2098   |  - 51.8%    |
++---------------+---------------+----------+-------------+
+| 教育程度      | - 学位        | - 4      |  - 0.1%     |
+|               | - 高中        | - 1058   |  - 26.1%    |
+|               | - 高中肄业    | - 140    |  - 3.5%     |
+|               | - 初中        | - 42     |  - 1.0%     |
+|               | - 初中专项    | - 2806   |  - 69.3%    |
++---------------+---------------+----------+-------------+
+| 婚姻状态      | - 公证婚姻    | - 355    |  - 8.8%     |
+|               | - 已婚        | - 2750   |  - 67.9%    |
+|               | - 离异        | - 237    |  - 5.9%     |
+|               | - 未婚        | - 544    |  - 13.4%    |
+|               | - 丧偶        | - 164    |  - 4.0%     |
++---------------+---------------+----------+-------------+
+| 居住方式      | - 合住公寓    | - 13     |  - 0.3%     |
+|               | - 公寓        | - 3652   |  - 90.2%    |
+|               | - 市政公寓    | - 127    |  - 3.1%     |
+|               | - 写字楼      | - 42     |  - 1.0%     |
+|               | - 租房        | - 60     |  - 1.5%     |
+|               | - 与父母同住  | - 156    |  - 3.9%     |
++---------------+---------------+----------+-------------+
+| 职业类型      | - 会计师      | - 150    |  - 3.7%     |
+|               | - 清洁工      | - 39     |  - 1.0%     |
+|               | - 厨师        | - 51     |  - 1.3%     |
+|               | - 核心员工    | - 386    |  - 9.5%     |
+|               | - 司机        | - 229    |  - 5.7%     |
+|               | - 高级技工    | - 174    |  - 4.3%     |
+|               | - 人力资源    | - 7      |  - 0.2%     |
+|               | - 互联网      | - 5      |  - 0.1%     |
+|               | - 工人        | - 708    |  - 17.5%    |
+|               | - 低技能工人  | - 17     |  - 0.4%     |
+|               | - 管理者      | - 338    |  - 8.3%     |
+|               | - 医务工作者  | - 104    |  - 2.6%     |
+|               | - 私人服务者  | - 37     |  - 0.9%     |
+|               | - 不动产代理人| - 2      |  - 0.0%     |
+|               | - 销售人员    | - 384    |  - 9.5%     |
+|               | - 秘书        | - 21     |  - 0.5%     |
+|               | - 安保人员    | - 83     |  - 2.0%     |
+|               | - 服务员      | - 16     |  - 0.4%     |
+|               | - 未知        | - 1299   |  - 32.1%    |
++---------------+---------------+----------+-------------+
+| 是否有手机    | - 否          | - 0      |  - 0.0%     |
+|               | - 是          | - 4050   |  - 100.0%   |
++---------------+---------------+----------+-------------+
+| 是否有工作电话| - 否          | - 3223   |  - 79.6%    |
+|               | - 是          | - 827    |  - 20.4%    |
++---------------+---------------+----------+-------------+
+| 是否有电话    | - 否          | - 2905   |  - 71.7%    |
+|               | - 是          | - 1145   |  - 28.3%    |
++---------------+---------------+----------+-------------+
+| 是否有Email   | - 否          | - 3601   |  - 88.9%    |
+|               | - 是          | - 449    |  - 11.1%    |
++---------------+---------------+----------+-------------+
+
+根据Table 1来看，除了“职业类型”有30%以上的未知类型，其余变量没有缺失值和未知值。
+客户中男性占比较高，且多数申请人无房或无车，务工群体占一半，教育程度偏低。
+其中，“居住方式”的分布严重倾斜，90%以上是公寓房，后续需要合并类别或删除；
+      “是否有手机”是常数变量，在后续处理中需要删除。
+      
+      
+
+**(2)连续变量**的基本统计量.
+```{r highlight=TRUE, include=FALSE}
+cont_feature_app <- setdiff(colnames(app_data), c(cate_feature_app, "ID")) # exclude ID
+summary_app[summary_app$name %in% cont_feature_app, ]
+```
+汇总输出为：
+   
+   变量名          缺失样本数     均值         标准差         中位数         最小值        最大值 
+ --------------- -------------  ----------   -----------    -----------    ----------    -----------
+ 孩子个数        	0	             0.41	         0.70	           0	            0	            4      
+ 年总收入       	0	            191048.20     148035.07	     162000	         27000        6750000
+ 生日      	      0	            -16107.04     4159.09	       -15875.5       -25080         -8050  
+ 开始工作日期     0	            62348.55	    140281.54	     -1460.5	      -16220        365243 
+ 家庭人数         0	             2.18	        0.87	           2	            1             6 
+ 
+ : Table 2: 客户表连续变量诊断情况统计.
+ 
+ 从上表看出，连续变量数据完整，没有缺失。申请人多数是没有孩子的, "年总收入"平均在19万左右，但是差异明显，其中最小值为2.7万，最大的有675万。
+
+
+**2. 交易表处理事项**：针对trans进行单变量诊断，将结果输出保存到文件中。过程同上。
+
+```{r echo=TRUE, highlight=TRUE}
+summary_trans <- summarizeColumns(trans)
+cate_feature_trans <- summary_trans$name[summary_trans$type == "character"]
+
+for (fea in cate_feature_trans) {
+  sink("../summary_cate_trans.txt", append = TRUE)
+  cat("The distribution of", fea, ": \n")
+  count <- table(trans[[fea]], useNA = "ifany")
+  tab <- cbind(count = count, 
+               freq  = round(count / nrow(trans), 3))
+  tab <- as.data.frame(tab)
+  print(tab)
+  cat("\n")
+  sink()
+}
+
+cont_feature_trans <- setdiff(colnames(trans), c(cate_feature_trans, "trans_id", "account_id", "date")) 
+summary_trans[summary_trans$name %in% cont_feature_trans, ]
+write.csv(summary_trans[summary_trans$name %in% cont_feature_trans, ], 
+          file = "../summary_cont_trans.csv", 
+          row.names = FALSE)
+```
+
+**(1)** 分类变量的类别分布情况如下。
+
+ : Table 3: 交易表分类变量诊断情况统计.
+
++---------------+---------------+-------------+-------------+
+| 变量名        | 类别          | 计数        | 频率        |
++===============+===============+=============+=============+
+| 借贷类型      | - 贷方        | - 421677    |  - 39.9%    |
+|  (type)       | - 借方        | - 634537    |  - 60.1%    |
++---------------+---------------+-------------+-------------+
+| 交易类型      | - 现金        | - 434884    | - 41.2%     |
+| (operation)   | - 信用卡      | - 8036      | - 8.0%      |
+|               | - 收款        | - 65226     | - 6.2%      |
+|               | - 贷款        | - 156671    | - 14.8%     |
+|               | - 汇款        | - 208283    | - 19.7%     |
+|               | - 未知        | - 183114    | - 17.3%     |
++---------------+---------------+-------------+-------------+
+| 交易特征      | - 养老金      | - 30338     | - 2.9%      |
+| (k_symbol)    | - 支付        | - 155832    | - 14.8%     |
+|               | - 保险交易    | - 18500     | - 1.7%      |
+|               | - 利息        | - 184691    | - 17.5%     |
+|               | - 贷款交易    | - 13580     | - 1.3%      |
+|               | - 房贷        | - 118065    | - 11.2%     |
+|               | - 未知        | - 535208    | - 50.6%     |
++---------------+---------------+-------------+-------------+
+| 银行          | - AB          | - 21720     | - 2.1%      |
+| (bank)        | - CD          | - 19597     | - 1.9%      |
+|               | - EF          | - 21293     | - 2.0%      |
+|               | - GH          | - 21499     | - 2.0%      |
+|               | - IJ          | - 20525     | - 1.9%      |
+|               | - KL          | - 21234     | - 2.0%      |
+|               | - MN          | - 19623     | - 1.9%      |
+|               | - OP          | - 21094     | - 2.0%      |
+|               | - QR          | - 22285     | - 2.1%      |
+|               | - ST          | - 21711     | - 2.1%      |
+|               | - UV          | - 21167     | - 2.0%      |
+|               | - WX          | - 20178     | - 1.9%      |
+|               | - YZ          | - 21582     | - 2.0%      |
+|               | - 未知        | - 782706    | - 74.1%     |
++---------------+---------------+-------------+-------------+
+
+根据Table 3，交易表中带来类型以借方类型较多，交易类型以现金交易最多，信用卡和收款交易较少。“交易特征”有50%以上的未知量，该特征很重要，保留未知量。“银行”有74%的未知特征，由于该字段表意不明且未知数过多，后续建模考虑删除。
+
+**(2)** 连续变量的统计量汇总如下。
+
+  变量名           缺失样本数      均值        标准差        中位数       最小值       最大值  
+------------   ----------------  ----------  ------------  ------------  ---------   -----------    
+   账目	         760825(72%)	    45670919	  30663397	     45750951       0	        99994199 
+   金额           	 0	          5924.50	    9523.08	       2100	          0	         87400  
+  账户余额           0	          38520.48	  22117.85	     33146	      -41126	     209637  
+
+ : Table 4: 客户表连续变量诊断情况统计. 
+  
+  
+账目(account)是一种数字编码，本身不表示大小，且有70%以上的数据缺失，如果该字段的含义不重要，在后续建模中可以考虑剔除。重点关注金额和账户余额两个特征。"交易金额"约有一半的交易金额实际上小于2100，最大值达到87400， 分布明显右偏。"账户余额"跨度大，分布右偏，余额为负的客户约占`r sum(trans$balance_num < 0) / nrow(trans)`, 个别账户具有高余额。
+
+
+
+**Q2:** 分析所提供的两个数据表中ID分布的匹配程度，即两张表中共同出现ID的个数，以及只在各自数据集中出现的ID个数，完成下表。
+
+**思路：** 统计只在客户表(app_data)或交易表(trans)中出现的账户号account_id, 参照link_table中的两个字段ID和account_id，进行表格间的连接。
+首先将客户表(app_data)与link_table内连接，匹配出客户表中的account_id. 
+
+   
+   表名                 account_id计数         
+ ---------------       ---------------   
+ 只在客户表中出现          8	    
+ 只在交易表中出现         449 
+ 同时出现      	          4042
+ 
+: Table 5: 跨表ID匹配诊断
+
+在客户表中出现但没有在交易表中出现的account_id有8个，说明这8位客户没有交易过。然而有449个账户在客户表并没有申请记录且进行了交易，存在异常，在后续建模中考虑删除。另外的4042个账户都是开通后进行正常交易的，是在后续建模可以正常使用的数据。
+
+具体的过程如下：
+
+```{r echo=TRUE, highlight=TRUE}
+# 参照link_table做表格内连接
+app_join_link <- inner_join(app_data, link_table, by = "ID") %>% 
+  select(ID, account_id, everything())
+
+# 在客户表中出现且没有在交易表中出现的account_id,说明只有客户号，没有交易过。
+app_no_trans <- setdiff(app_join_link$account_id,trans$account_id)
+print(paste("the account_id only appear in app_data:", length(app_no_trans)))
+
+# 在交易表中出现但没有在申请表中出现的account_id,说明没有开账户就进行了交易。
+trans_no_app <- setdiff(trans$account_id, app_join_link$account_id)
+print(paste("the account_id only appear in trans:", length(trans_no_app)))
+
+# 在两张表中都出现的account_id数量
+trans_with_app <- intersect(trans$account_id, app_join_link$account_id)
+print(paste("the account_id appear in both data:", length(trans_with_app)))
+
+trans_join_link <- inner_join(trans, link_table, by = "account_id") %>% select(ID, everything())
+
+```
+
+**Q3:** 除去上面两项之外，其他诊断情况，请说明规则，并列表展示，给出诊断结果。
+
+以上已经认识了数据的基本情况，下面来诊断数据中的异常值。异常值会改变变量分布形态，影响后续建模效果。
+
+我们将异常值定义为在均值的3倍标准差之外的值，对客户表和交易表中的连续变量进行异常值识别。
+```{r echo=TRUE}
+find_outliers <- function(data, fea) {
+  
+  data_mean  <- mean(data[[fea]])
+  lower_rule <- data_mean - sd(data[[fea]]) * 3
+  upper_rule <- data_mean + sd(data[[fea]]) * 3
+  outliers_ind <- (data[[fea]] > upper_rule) | (data[[fea]] < lower_rule)
+
+  return(which(outliers_ind))
+}
+
+```
+
+**1.** 首先对申请表(app_data)中的连续型数据进行诊断，
+
+```{r echo=TRUE, fig.height=4, fig.width=5, highlight=TRUE}
+# 针对app_data
+app_cont_outlier <- list()
+for (f in 1:length(cont_feature_app)) {
+  app_cont_outlier[[f]] <- find_outliers(app_data, cont_feature_app[f])
+} 
+names(app_cont_outlier) <- cont_feature_app
+lapply(app_cont_outlier, function(item) {length(item)})
+
+cat("outlier values of CNT_CHILDREN:", unique(app_data$CNT_CHILDREN[app_cont_outlier[["CNT_CHILDREN"]]]), "\n")
+cat("outlier values of CNT_FAM_MEMBERS:", unique(app_data$CNT_FAM_MEMBERS[app_cont_outlier[["CNT_FAM_MEMBERS"]]]), "\n")
+cat("outlier values of AMT_INCOME_TOTAL:", unique(app_data$AMT_INCOME_TOTAL[app_cont_outlier[["AMT_INCOME_TOTAL"]]]), "\n")
+
+
+```
+
+分析“小孩个数”和“家庭人数”两个字段。大多数客户拥有在2个或2个以下的孩子，仅54人有3个或3个以上的孩子。“家庭人数”与“孩子个数”保持一致，除一位40岁男性申请人，未婚但有3个孩子，但该客户在交易表中没有交易记录, 对交易数据的分析不会产生影响。
+
+分析"年总收入"。绘制"年总收入"的密度图，发现数据严重右偏，拖尾严重： 
+
+```{r echo=TRUE, highlight=TRUE}
+library(ggplot2)
+ggplot(data = app_data) +  geom_density(mapping = aes(x = AMT_INCOME_TOTAL)) 
+```
+
+下面检查**年总收入最值**的合理性。
+
+**(a)** 查看年总收入最小的客户。
+
+```{r echo=TRUE, highlight=TRUE}
+unlist(app_data[which(app_data$AMT_INCOME_TOTAL == min(app_data$AMT_INCOME_TOTAL)), ])
+sum(app_data$NAME_INCOME_TYPE[app_data$AMT_INCOME_TOTAL < 50000] == "Pensioner") /  sum(app_data$AMT_INCOME_TOTAL < 50000)
+```
+
+最小年收入为27000，该客户为女性，丧偶，没有小孩，独居，58岁，主要收入为养老金(Pensioner)。且在年收入低于5万的人群中有75%的"收入类型"为养老金，因此该数据合理。
+
+**(b)** 查看年总收入最大的客户。
+```{r echo=TRUE, highlight=TRUE}
+# 查看年总收入最大的客户
+unlist(app_data[which(app_data$AMT_INCOME_TOTAL == max(app_data$AMT_INCOME_TOTAL)), ])
+```
+
+最大年收入为675万，该申请人为男性，已婚，没有小孩，40岁，名下无房产，收入类型为工人(working)，职位为普通工人。根据其收入类型、职位和房产情况，推测该条数据存在异常。进一步，绘制**"收入类型"**对**年总收入**的箱线图如下：
+
+```{r echo=TRUE, fig.height=4, fig.width=5, highlight=TRUE, paged.print=TRUE}
+ggplot(data = app_data) + 
+  geom_boxplot(mapping = aes(x = NAME_INCOME_TYPE , y = AMT_INCOME_TOTAL), width=.2, 
+               outlier.size = .8, outlier.alpha = 0.8) + 
+  xlab("收入类型") +
+  ylab("年总收入")
+
+```
+
+可以发现675万的年收入在工人中确实属于异常点，应该是数据采集出错，应将该数据的"AMT_INCOME_TOTAL"字段清空。
+然后按照"收入类型"汇总**年总收入的均值**和**中位数**：
+
+```{r highlight=TRUE}
+app_data %>% filter(AMT_INCOME_TOTAL != 6750000) %>% 
+  group_by(NAME_INCOME_TYPE) %>% 
+  mutate(AVG_INCOME = mean(AMT_INCOME_TOTAL)) %>% 
+  mutate(MED_INCOME = median(AMT_INCOME_TOTAL)) %>% 
+  select(NAME_INCOME_TYPE, AVG_INCOME, MED_INCOME) %>%
+  unique()
+
+```
+
+
+    收入类型          收入均值     收入中位数
+  ---------------   -------------  ----------  
+  工人                184718         157500
+  商业                225171         202500
+  公务员              200455         180000
+  养老金              153146         135000
+
+ : Table 6: 各收入类型的收入均值和中位数.   
+    
+对于其他年总收入的异常值，提取数据，考察其合理性，
+```{r echo=TRUE, highlight=TRUE}
+
+app_data[app_cont_outlier[["AMT_INCOME_TOTAL"]], ] %>% filter(AMT_INCOME_TOTAL != 6750000)
+
+```
+
+可以发现最后一条数据的"DAYS_EMPLOYED"记录为正值(应为负值，表示从申请日前推到开始工作日期之间的间隔),且数值大于DAY_BIRTH)，考虑为记录错误，应清除该客户的"DAYS_EMPLOYED"字段。此外，可以发现这些高收入人群大多从事商业活动(Commercial associate)且均为管理层(Managers)或核心员工(core staff)或高级技术人员(High skill tech staff)，但有少数从事工人(Working)，我们单独筛选出来分析。
+```{r echo=TRUE, highlight=TRUE}
+app_data[app_cont_outlier[["AMT_INCOME_TOTAL"]], ] %>% 
+  filter(AMT_INCOME_TOTAL != 6750000) %>%
+  filter(NAME_INCOME_TYPE == "Working")
+
+app_data_new <- app_data %>% filter(AMT_INCOME_TOTAL != 6750000)
+ggplot(data = app_data_new) + 
+  geom_boxplot(mapping = aes(x = NAME_INCOME_TYPE , y = AMT_INCOME_TOTAL), width=.2, 
+               outlier.size = .8, outlier.alpha = 0.8) + 
+  xlab("收入类型") +
+  ylab("年总收入")
+```
+从上表看有3个从事Working的人职位为Managers，暂认为其收入无异常。有1个从事Working的人职位为Labors，但是有房有车，暂认为无异常。还有一位职位数据缺失，但有房有车，已婚已育比较稳定，暂时认为无异常。
+
+新的数据为
+```{r echo=TRUE}
+app_data$AMT_INCOME_TOTAL[AMT_INCOME_TOTAL == 6750000] <- NA
+app_data$DAYS_EMPLOYED[DAYS_EMPLOYED == 365243] <- NA
+```
+
+
+**2.** 针对交易表(trans)，主要查看"金额"与"账户余额"的分布情况，检查是否存在异常值。
+
+
+```{r echo=TRUE, fig.height=4, fig.width=5, message=FALSE, warning=FALSE, highlight=TRUE}
+# 针对trans
+trans_cont_outlier <- list()
+for (f in 1:length(cont_feature_trans)) {
+  trans_cont_outlier[[f]] <- find_outliers(trans, cont_feature_trans[f])
+} 
+names(trans_cont_outlier) <- cont_feature_trans
+
+plot_data <- tibble(value = c(trans[["amount_num"]], trans[["balance_num"]]), var = c(rep("amount_num", nrow(trans)), rep("balance_num", nrow(trans))))
+ggplot(plot_data, aes(x = var, y = value)) + 
+  geom_boxplot(outlier.size = 0.3, width = 0.2) + xlab("continuous variable")
+
+```
+
+从图上看，账户余额的一个明显的最大值点。查询该客户最大值发生的半月之间的交易数据， 
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, highlight=TRUE}
+
+
+trans[trans$account_id == trans[[which.max(trans$balance_num), "account_id"]], ] %>% 
+  filter(date > as.Date("1997-05-01") & date < as.Date("1997-05-15")) %>% 
+  select(-c(bank, account))
+
+```
+从结果上看,该客户在当时半月内账户余额波动较大，交易金额也比较大，并未见明显异常。
+
+
+</span>
