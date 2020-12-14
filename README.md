@@ -1,4 +1,4 @@
-# Credit_Card_Management (信用卡管理入门)
+# Personal customer management in Bank (银行个人客户管理)
 Introduce the procedures of credit card management in this repository. 
 
 **Suitable Users:** the persons who are interested in financial technology or want to engage in financial technology.
