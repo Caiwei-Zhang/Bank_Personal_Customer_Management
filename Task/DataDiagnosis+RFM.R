@@ -73,7 +73,7 @@ length(unique(trans$account_id))
 cate_feature_trans <- summary_trans$name[summary_trans$type == "character"]
 
 for (fea in cate_feature_trans) {
-  sink(paste(sw, "summary_cont.txt", sep = "/"), append = TRUE)
+  sink(paste(sw, "summary_cate_trans.txt", sep = "/"), append = TRUE)
   cat("The distribution of", fea, ": \n")
   count <- table(trans[[fea]], useNA = "ifany")
   tab <- cbind(count = count, 
