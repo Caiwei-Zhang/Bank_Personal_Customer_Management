@@ -1,5 +1,5 @@
 每个task都附带R和Python代码：
-- R代码以notebook的形式展示，带有分析和结果。附有纯R代码在`.R`文件中。
+- R代码以notebook的形式展示，带有分析和结果。
 - python代码以html文件的形式。
  
  
