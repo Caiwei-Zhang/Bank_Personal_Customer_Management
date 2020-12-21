@@ -4,7 +4,9 @@ library(mlr)
 
 
 # read data
-path <- "E:/ÊµÏ°/ĞÅÓÃ¿¨¹ÜÀí/Task 2/data"
+# å°†è·¯å¾„æŒ‡å®šä¸ºdataæ‰€åœ¨çš„æ–‡ä»¶å¤¹
+sw <- setwd("..") 
+path <- paste(sw, "data", sep = "/")
 filepath <- list.files(path = path, pattern = ".csv", full.names = TRUE)
 filename <- gsub(pattern = ".csv", replacement = "", 
                  list.files(path = path, pattern = ".csv"))
@@ -18,21 +20,21 @@ for (i in 1:length(filepath)) {
 ####################### T2Q1: basic knowlwdge ##########################
 ########################################################################
 # app_data
-# IDÓ¦¸ÃÊÇÎ¨Ò»µÄ£¬¾­¼ì²é·¢ÏÖ£¬ÓĞ8¸öID³öÏÖÁË2´Î£¬ÆäÖĞÓĞ5ÌõÊı¾İÊÇÍêÈ«Ò»ÑùµÄ£¬
-# ÆäÓà3ÌõÔÚAMT_INCOME_TOTALÓĞ²îÒì£¬¾ùÊÇÏà²îÒ»¸ö0,Ó¦¸ÃÊÇÊı¾İÂ¼ÈëÊ±³öÏÖÁËÎÊÌâ¡£
-# ²é¿´ÖØ¸´Öµ
+# IDåº”è¯¥æ˜¯å”¯ä¸€çš„ï¼Œç»æ£€æŸ¥å‘ç°ï¼Œæœ‰8ä¸ªIDå‡ºç°äº†2æ¬¡ï¼Œå…¶ä¸­æœ‰5æ¡æ•°æ®æ˜¯å®Œå…¨ä¸€æ ·çš„ï¼Œ
+# å…¶ä½™3æ¡åœ¨AMT_INCOME_TOTALæœ‰å·®å¼‚ï¼Œå‡æ˜¯ç›¸å·®ä¸€ä¸ª0,åº”è¯¥æ˜¯æ•°æ®å½•å…¥æ—¶å‡ºç°äº†é—®é¢˜ã€‚
+# æŸ¥çœ‹é‡å¤å€¼
 dup_id <- app_data %>% group_by(ID) %>% mutate(count = n()) %>% filter(count > 1) %>% ungroup()
 dup_id
 dup_data <- dup_id[!duplicated(dup_id),]
 # puzzle_idx <- which(duplicated(dup_data$ID,))
 
-# ÒòÎªÒÑ¾­grouop¹ı£¬ËùÒÔÃ¿Ò»¸öIDÖØ¸´µÄÊı¾İ¶¼ºÍËüµÄÉÏÒ»ÌõÊı¾İ×ö¶Ô±È
+# å› ä¸ºå·²ç»grouopè¿‡ï¼Œæ‰€ä»¥æ¯ä¸€ä¸ªIDé‡å¤çš„æ•°æ®éƒ½å’Œå®ƒçš„ä¸Šä¸€æ¡æ•°æ®åšå¯¹æ¯”
 diff_col <- list()
 for (i in which(duplicated(dup_data$ID,))) {
   diff_col <- append(diff_col, colnames(dup_data)[which(dup_data[i, ] != dup_data[(i-1), ])])
 }
 
-# ÆäÓà3ÌõIDÖØ¸´µÄÊı¾İ¾ùÔÚÔÚAMT_INCOME_TOTALÉÏÓĞ²îÒì£¬²é¿´·¢ÏÖ¶¼ÊÇÉÙÁËÒ»Î»0£¬ÅĞ¶ÏÎªÊı¾İ²É¼¯»òÕßÂ¼Èë´íÎó£¬É¾³ıÖØ¸´Êı¾İ¡£
+# å…¶ä½™3æ¡IDé‡å¤çš„æ•°æ®å‡åœ¨åœ¨AMT_INCOME_TOTALä¸Šæœ‰å·®å¼‚ï¼ŒæŸ¥çœ‹å‘ç°éƒ½æ˜¯å°‘äº†ä¸€ä½0ï¼Œåˆ¤æ–­ä¸ºæ•°æ®é‡‡é›†æˆ–è€…å½•å…¥é”™è¯¯ï¼Œåˆ é™¤é‡å¤æ•°æ®ã€‚
 app_data <- app_data[!duplicated(app_data$ID), ]
 
 summary_app <- summarizeColumns(app_data)
@@ -41,7 +43,7 @@ FLAG <- colnames(app_data)[grep("FLAG", colnames(app_data))]
 cate_feature_app <- union(cate_feature_app, FLAG)
 
 for (fea in cate_feature_app) {
-  sink("E:/ÊµÏ°/ĞÅÓÃ¿¨¹ÜÀí/Task 2/summary_cate.txt", append = TRUE)
+  sink(paste(sw, "summary_cate.txt", sep = "/"), append = TRUE)
   cat("The distribution of", fea, ": \n")
   count <- table(app_data[[fea]], useNA = "ifany")
   tab <- cbind(count = count, 
@@ -55,7 +57,7 @@ for (fea in cate_feature_app) {
 cont_feature_app <- setdiff(colnames(app_data), c(cate_feature_app, "ID")) # exclude ID
 summary_app[summary_app$name %in% cont_feature_app, ]
 write.csv(summary_app[summary_app$name %in% cont_feature_app, ], 
-            file = "E:/ÊµÏ°/ĞÅÓÃ¿¨¹ÜÀí/Task 2/summary_cont.csv", 
+            file = paste(sw, "summary_cont.csv", sep = "/"), 
             row.names = FALSE)
 
 # trans
@@ -64,14 +66,14 @@ nrow(trans)
 
 summary_trans <- summarizeColumns(trans)
 length(unique(trans$account_id)) 
-# 4491¸öÕË»§·¢ÆğÁË1056214´Î½»Ò×
-# Á½¸ö×Ö¶ÎÒâÒå²»Ã÷£¬ account & bank 
+# 4491ä¸ªè´¦æˆ·å‘èµ·äº†1056214æ¬¡äº¤æ˜“
+# ä¸¤ä¸ªå­—æ®µæ„ä¹‰ä¸æ˜ï¼Œ account & bank 
 
-# ¹Û²ì·ÖÀà±äÁ¿µÄÀà±ğ·Ö²¼
+# è§‚å¯Ÿåˆ†ç±»å˜é‡çš„ç±»åˆ«åˆ†å¸ƒ
 cate_feature_trans <- summary_trans$name[summary_trans$type == "character"]
 
 for (fea in cate_feature_trans) {
-  sink("E:/ÊµÏ°/ĞÅÓÃ¿¨¹ÜÀí/Task 2/summary_cate_trans.txt", append = TRUE)
+  sink(paste(sw, "summary_cont.txt", sep = "/"), append = TRUE)
   cat("The distribution of", fea, ": \n")
   count <- table(trans[[fea]], useNA = "ifany")
   tab <- cbind(count = count, 
@@ -85,7 +87,7 @@ for (fea in cate_feature_trans) {
 cont_feature_trans <- setdiff(colnames(trans), c(cate_feature_trans, "trans_id", "account_id", "date")) 
 summary_trans[summary_trans$name %in% cont_feature_trans, ]
 write.csv(summary_trans[summary_trans$name %in% cont_feature_trans, ], 
-          file = "E:/ÊµÏ°/ĞÅÓÃ¿¨¹ÜÀí/Task 2/summary_cont_trans.csv", 
+          file = paste(sw, "summary_cont_trans.csv", sep = "/"), 
           row.names = FALSE)
 
 
@@ -93,18 +95,18 @@ write.csv(summary_trans[summary_trans$name %in% cont_feature_trans, ],
 ########################################################################
 ####################### T2Q2: account_id match #########################
 ########################################################################
-# ²ÎÕÕlink_table×ö±í¸ñÄÚÁ¬½Ó
+# å‚ç…§link_tableåšè¡¨æ ¼å†…è¿æ¥
 app_join_link <- inner_join(app_data, link_table, by = "ID") %>% select(ID, account_id, everything())
 
-# ÔÚ¿Í»§±íÖĞ³öÏÖÇÒÃ»ÓĞÔÚ½»Ò×±íÖĞ³öÏÖµÄaccount_id,ËµÃ÷Ö»ÓĞ¿Í»§ºÅ£¬Ã»ÓĞ½»Ò×¹ı¡£
+# åœ¨å®¢æˆ·è¡¨ä¸­å‡ºç°ä¸”æ²¡æœ‰åœ¨äº¤æ˜“è¡¨ä¸­å‡ºç°çš„account_id,è¯´æ˜åªæœ‰å®¢æˆ·å·ï¼Œæ²¡æœ‰äº¤æ˜“è¿‡ã€‚
 app_no_trans <- setdiff(app_join_link$account_id,trans$account_id)
 length(app_no_trans)
 
-# ÔÚ½»Ò×±íÖĞ³öÏÖµ«Ã»ÓĞÔÚÉêÇë±íÖĞ³öÏÖµÄaccount_id,ËµÃ÷Ã»ÓĞ¿ªÕË»§¾Í½øĞĞÁË½»Ò×¡£
+# åœ¨äº¤æ˜“è¡¨ä¸­å‡ºç°ä½†æ²¡æœ‰åœ¨ç”³è¯·è¡¨ä¸­å‡ºç°çš„account_id,è¯´æ˜æ²¡æœ‰å¼€è´¦æˆ·å°±è¿›è¡Œäº†äº¤æ˜“ã€‚
 trans_no_app <- setdiff(trans$account_id, app_join_link$account_id)
 length(trans_no_app)
 
-# ÔÚÁ½ÕÅ±íÖĞ¶¼³öÏÖµÄaccount_idÊıÁ¿
+# åœ¨ä¸¤å¼ è¡¨ä¸­éƒ½å‡ºç°çš„account_idæ•°é‡
 trans_with_app <- intersect(trans$account_id, app_join_link$account_id)
 length(trans_with_app)
 
@@ -112,7 +114,7 @@ length(trans_with_app)
 
 
 ########################################################################
-########################### T2Q3: Òì³£Öµ¼ì²â  ##########################
+########################### T2Q3: å¼‚å¸¸å€¼æ£€æµ‹  ##########################
 ########################################################################
 find_outliers <- function(data, fea) {
   
@@ -124,14 +126,14 @@ find_outliers <- function(data, fea) {
   return(which(outliers_ind))
 }
 
-# Õë¶Ôapp_data
+# é’ˆå¯¹app_data
 app_cont_outlier <- list()
 for (f in 1:length(cont_feature_app)) {
   app_cont_outlier[[f]] <- find_outliers(app_data, cont_feature_app[f])
 } 
 names(app_cont_outlier) <- cont_feature_app
 
-## ÀíÂÛÉÏËµCNT_CHILDREN¶àµÄ£¬¼ÒÍ¥³ÉÔ±ÊıÒ²Òª¶à£¬µ«ÊÇ1632ºÅĞ¡º¢¶à¼ÒÍ¥³ÉÔ±È´²»Òì³£ 
+## ç†è®ºä¸Šè¯´CNT_CHILDRENå¤šçš„ï¼Œå®¶åº­æˆå‘˜æ•°ä¹Ÿè¦å¤šï¼Œä½†æ˜¯1632å·å°å­©å¤šå®¶åº­æˆå‘˜å´ä¸å¼‚å¸¸ 
 app_data$CNT_CHILDREN[app_cont_outlier[["CNT_CHILDREN"]]]
 app_data$CNT_FAM_MEMBERS[app_cont_outlier[["CNT_FAM_MEMBERS"]]]
 app_data$AMT_INCOME_TOTAL[app_cont_outlier[["AMT_INCOME_TOTAL"]]]
@@ -142,8 +144,8 @@ library(ggplot2)
 ggplot(data = app_data) + 
   geom_boxplot(mapping = aes(x = NAME_INCOME_TYPE , y = AMT_INCOME_TOTAL), width=.2, 
                outlier.size = .8, outlier.alpha = 0.8) + 
-  xlab("ÊÕÈëÀàĞÍ") +
-  ylab("Äê×ÜÊÕÈë")
+  xlab("æ”¶å…¥ç±»å‹") +
+  ylab("å¹´æ€»æ”¶å…¥")
 
 app_data %>% filter(AMT_INCOME_TOTAL != 6750000) %>% 
   group_by(NAME_INCOME_TYPE) %>% 
@@ -156,14 +158,14 @@ app_data %>% filter(AMT_INCOME_TOTAL != 6750000) %>%
 
 
 
-# Õë¶Ôtrans
+# é’ˆå¯¹trans
 trans_cont_outlier <- list()
 for (f in 1:length(cont_feature_trans)) {
   trans_cont_outlier[[f]] <- find_outliers(trans, cont_feature_trans[f])
 } 
 names(trans_cont_outlier) <- cont_feature_trans
 
-## ÀíÂÛÉÏËµCNT_CHILDREN¶àµÄ£¬¼ÒÍ¥³ÉÔ±ÊıÒ²Òª¶à£¬µ«ÊÇ1632ºÅĞ¡º¢¶à¼ÒÍ¥³ÉÔ±È´²»Òì³£ 
+## ç†è®ºä¸Šè¯´CNT_CHILDRENå¤šçš„ï¼Œå®¶åº­æˆå‘˜æ•°ä¹Ÿè¦å¤šï¼Œä½†æ˜¯1632å·å°å­©å¤šå®¶åº­æˆå‘˜å´ä¸å¼‚å¸¸ 
 trans$amount_num[trans_cont_outlier[["amount_num"]]]
 trans$balance_num[trans_cont_outlier[["balance_num"]]]
 
@@ -173,10 +175,10 @@ plot_data <- tibble(value = c(trans[["amount_num"]], trans[["balance_num"]]), va
 ggplot(plot_data, aes(x = var, y = value)) + 
   geom_boxplot(outlier.size = 0.3) + xlab("continuous variable")
 
-#²Ù×÷½ğ¶îÎªÕıÊı£¬¼¯ÖĞÔÚ2000-5000
+#æ“ä½œé‡‘é¢ä¸ºæ­£æ•°ï¼Œé›†ä¸­åœ¨2000-5000
 
 
-# ÕË»§Óà¶îµÄÒ»¸öÃ÷ÏÔµÄ×î´óÖµµã¡£²éÑ¯¸Ã¿Í»§×î´óÖµ·¢ÉúµÄ°ëÔÂÖ®¼äµÄ½»Ò×Êı¾İ¡£
+# è´¦æˆ·ä½™é¢çš„ä¸€ä¸ªæ˜æ˜¾çš„æœ€å¤§å€¼ç‚¹ã€‚æŸ¥è¯¢è¯¥å®¢æˆ·æœ€å¤§å€¼å‘ç”Ÿçš„åŠæœˆä¹‹é—´çš„äº¤æ˜“æ•°æ®ã€‚
 trans[trans$account_id == trans[[which.max(trans$balance_num), "account_id"]], ] %>% 
   filter(date > as.Date("1997-05-01") & date < as.Date("1997-05-15")) %>% 
   select(-c(bank, account))
@@ -185,16 +187,16 @@ trans[trans$account_id == trans[[which.max(trans$balance_num), "account_id"]], ]
 ########################################################################
 ###################### T3Q1: RFM by operation ##########################
 ########################################################################
-# ÔÚ½øĞĞÄ£ĞÍ½¨Á¢Ç°ÎÒÃÇÊ×ÏÈÉ¾³ı·ÇÕı³£½»Ò×µÄ449¸öÑù±¾(Ö»ÔÚ½»Ò×±íÖĞ³öÏÖ¶øÃ»ÓĞÔÚ¿Í»§±íÖĞ³öÏÖ)£¬
+# åœ¨è¿›è¡Œæ¨¡å‹å»ºç«‹å‰æˆ‘ä»¬é¦–å…ˆåˆ é™¤éæ­£å¸¸äº¤æ˜“çš„449ä¸ªæ ·æœ¬(åªåœ¨äº¤æ˜“è¡¨ä¸­å‡ºç°è€Œæ²¡æœ‰åœ¨å®¢æˆ·è¡¨ä¸­å‡ºç°)ï¼Œ
 trans_obj <- trans[!trans$account_id %in% trans_no_app, ] %>% 
   filter(date > as.Date("1998-01-01") & date < as.Date("1998-06-30"))
 
-# ²é¿´Ò»¹²ÓĞ¶àÉÙÕË»§ÔÚÍ³¼ÆÖÜÆÚÄÚ½øĞĞÁË¶àÉÙ´Î½»Ò×
-sprintf("Ò»¹²ÓĞ %d ÕË»§ÔÚÍ³¼ÆÖÜÆÚÄÚ½øĞĞÁË %d ½»Ò×", 
+# æŸ¥çœ‹ä¸€å…±æœ‰å¤šå°‘è´¦æˆ·åœ¨ç»Ÿè®¡å‘¨æœŸå†…è¿›è¡Œäº†å¤šå°‘æ¬¡äº¤æ˜“
+sprintf("ä¸€å…±æœ‰ %d è´¦æˆ·åœ¨ç»Ÿè®¡å‘¨æœŸå†…è¿›è¡Œäº† %d äº¤æ˜“", 
         length(unique(trans_obj$account_id)), nrow(trans_obj))
 
-### Q1. Ã¿Ò»¸ö¿Í»§µÄÄ³ÖÖ½»Ò×µÄR£¬F£¬MÖ¸±ê
-# ·Ö±ğÌáÈ¡²»Í¬½»Ò×ÀàĞÍµÄÊı¾İ
+### Q1. æ¯ä¸€ä¸ªå®¢æˆ·çš„æŸç§äº¤æ˜“çš„Rï¼ŒFï¼ŒMæŒ‡æ ‡
+# åˆ†åˆ«æå–ä¸åŒäº¤æ˜“ç±»å‹çš„æ•°æ®
 trans_rfm <- trans_obj %>% group_by(account_id, operation) %>% 
   mutate(recency = max(date)) %>% mutate(frequency = n()) %>%
   mutate(monetary = sum(amount_num)) %>%
@@ -209,14 +211,14 @@ trans_rfm <- inner_join(trans_rfm, rTime, by = "operation")
 trans_rfm$rInternal <- as.integer(as.Date(trans_rfm$recency) - as.Date(trans_rfm$refertime))
 trans_rfm <- select(trans_rfm, -c(refertime))
 
-# ¶ÔÓÚ6Àà½»Ò×ÀàĞÍ£¬ÎÒÃÇ·Ö±ğ¼ÆËãÁËÏàÓ¦µÄR£¬F£¬MÖ¸±ê£¬²¢±£´æÔÚÏàÓ¦ÎÄ¼şÖĞ¡£
+# å¯¹äº6ç±»äº¤æ˜“ç±»å‹ï¼Œæˆ‘ä»¬åˆ†åˆ«è®¡ç®—äº†ç›¸åº”çš„Rï¼ŒFï¼ŒMæŒ‡æ ‡ï¼Œå¹¶ä¿å­˜åœ¨ç›¸åº”æ–‡ä»¶ä¸­ã€‚
 operation <- unique(trans_obj$operation)
 for (op in operation) {
   assign(paste0("trans_", op), trans_rfm[trans_rfm$operation == op, ])
 }
 
 
-# ¶¨ÒåÒ»¸ö»æÍ¼Ö÷Ìâ
+# å®šä¹‰ä¸€ä¸ªç»˜å›¾ä¸»é¢˜
 mytheme <- theme(axis.text.x = element_text(angle = 30, vjust= 1, hjust = 1, size = 10),
                  axis.title.x = element_text(size=8),
                  axis.title.y = element_text(size=8),
@@ -226,7 +228,7 @@ mytheme <- theme(axis.text.x = element_text(angle = 30, vjust= 1, hjust = 1, siz
                  panel.grid.minor.x = element_blank(), 
                  legend.position = "bottom")
 
-## »æÖÆloan½»Ò×¶ÔÓ¦µÄrecency, frequency, monetaryµÄÖ±·½Í¼£¬¹Û²ìÆä·Ö²¼
+## ç»˜åˆ¶loanäº¤æ˜“å¯¹åº”çš„recency, frequency, monetaryçš„ç›´æ–¹å›¾ï¼Œè§‚å¯Ÿå…¶åˆ†å¸ƒ
 r <- ggplot(trans_loan, aes(rInternal)) +
   geom_histogram(bins = 10) + mytheme
 f <- ggplot(trans_loan, aes(frequency)) +
@@ -239,24 +241,24 @@ gridExtra::grid.arrange(r, f, m, ncol = 3)
 ########################################################################
 ###################### T3Q2: set grade by RFM ##########################
 ########################################################################
-### Q2. ¶ÔÈı¸öÎ¬¶È£¬·Ö±ğ»®·ÖµÈ¼¶£¬ÁĞÃ÷µÈ¼¶»®·Ö±ê×¼£¬ËµÃ÷µÈ¼¶»®·ÖµÄÀíÓÉ¡£
-# ¶ÔÓÚÔ­Ê¼R,F,MµÄÈ¡Öµ£¬´óÓÚÆ½¾ùÊıÈÏÎª¡°¸ßµÈ¼¶¡±£¬Ğ¡ÓÚÆ½¾ùÊıÈÏÎª¡°µÍµÈ¼¶¡±¡£
-trans_loan$rankR <- ifelse(trans_loan$rInternal > mean(trans_loan$rInternal), "¸ß", "µÍ")
-trans_loan$rankF <- ifelse(trans_loan$frequency > mean(trans_loan$frequency), "¸ß", "µÍ")
-trans_loan$rankM <- ifelse(trans_loan$monetary > mean(trans_loan$monetary), "¸ß", "µÍ")
+### Q2. å¯¹ä¸‰ä¸ªç»´åº¦ï¼Œåˆ†åˆ«åˆ’åˆ†ç­‰çº§ï¼Œåˆ—æ˜ç­‰çº§åˆ’åˆ†æ ‡å‡†ï¼Œè¯´æ˜ç­‰çº§åˆ’åˆ†çš„ç†ç”±ã€‚
+# å¯¹äºåŸå§‹R,F,Mçš„å–å€¼ï¼Œå¤§äºå¹³å‡æ•°è®¤ä¸ºâ€œé«˜ç­‰çº§â€ï¼Œå°äºå¹³å‡æ•°è®¤ä¸ºâ€œä½ç­‰çº§â€ã€‚
+trans_loan$rankR <- ifelse(trans_loan$rInternal > mean(trans_loan$rInternal), "é«˜", "ä½")
+trans_loan$rankF <- ifelse(trans_loan$frequency > mean(trans_loan$frequency), "é«˜", "ä½")
+trans_loan$rankM <- ifelse(trans_loan$monetary > mean(trans_loan$monetary), "é«˜", "ä½")
 
 label <- vector("character", nrow(trans_loan))
 trans_loan_lab <- within(trans_loan, {
   
-  label[rankR == "¸ß" & rankF == "¸ß" & rankM == "¸ß"] = "ÖØÒª¼ÛÖµ¿Í»§"
-  label[rankR == "¸ß" & rankF == "µÍ" & rankM == "¸ß"] = "ÖØÒª·¢Õ¹¿Í»§"  
-  label[rankR == "µÍ" & rankF == "¸ß" & rankM == "¸ß"] = "ÖØÒª±£³Ö¿Í»§"
-  label[rankR == "µÍ" & rankF == "µÍ" & rankM == "¸ß"] = "ÖØÒªÍìÁô¿Í»§"
+  label[rankR == "é«˜" & rankF == "é«˜" & rankM == "é«˜"] = "é‡è¦ä»·å€¼å®¢æˆ·"
+  label[rankR == "é«˜" & rankF == "ä½" & rankM == "é«˜"] = "é‡è¦å‘å±•å®¢æˆ·"  
+  label[rankR == "ä½" & rankF == "é«˜" & rankM == "é«˜"] = "é‡è¦ä¿æŒå®¢æˆ·"
+  label[rankR == "ä½" & rankF == "ä½" & rankM == "é«˜"] = "é‡è¦æŒ½ç•™å®¢æˆ·"
   
-  label[rankR == "¸ß" & rankF == "¸ß" & rankM == "µÍ"] = "Ò»°ã¼ÛÖµ¿Í»§"
-  label[rankR == "¸ß" & rankF == "µÍ" & rankM == "µÍ"] = "Ò»°ã·¢Õ¹¿Í»§"  
-  label[rankR == "µÍ" & rankF == "¸ß" & rankM == "µÍ"] = "Ò»°ã±£³Ö¿Í»§"
-  label[rankR == "µÍ" & rankF == "µÍ" & rankM == "µÍ"] = "Ò»°ãÍìÁô¿Í»§"
+  label[rankR == "é«˜" & rankF == "é«˜" & rankM == "ä½"] = "ä¸€èˆ¬ä»·å€¼å®¢æˆ·"
+  label[rankR == "é«˜" & rankF == "ä½" & rankM == "ä½"] = "ä¸€èˆ¬å‘å±•å®¢æˆ·"  
+  label[rankR == "ä½" & rankF == "é«˜" & rankM == "ä½"] = "ä¸€èˆ¬ä¿æŒå®¢æˆ·"
+  label[rankR == "ä½" & rankF == "ä½" & rankM == "ä½"] = "ä¸€èˆ¬æŒ½ç•™å®¢æˆ·"
   
 })
 
@@ -270,36 +272,36 @@ trans_loan_lab %>% group_by(label) %>%
 ########################################################################
 ################### T3Q3: the number of applications ###################
 ########################################################################
-### Q3. ¼ÆËãÃ¿¸öµ¥ÔªÓÃ»§ÊıºÍÕ¼±ÈÇé¿ö£º
+### Q3. è®¡ç®—æ¯ä¸ªå•å…ƒç”¨æˆ·æ•°å’Œå æ¯”æƒ…å†µï¼š
 loan_group <- cbind(count = table(trans_loan_lab$label), 
                     prop = round(table(trans_loan_lab$label) / nrow(trans_loan_lab), 4))
 loan_group
 
-# »æÖÆloan½»Ò×¶ÔÓ¦µÄ¿Í»§·Ö²ãÌõĞÎÍ¼
+# ç»˜åˆ¶loanäº¤æ˜“å¯¹åº”çš„å®¢æˆ·åˆ†å±‚æ¡å½¢å›¾
 ggplot(data = trans_loan_lab) + geom_bar(mapping = aes(x = label)) + 
   xlab("Customer stratification of loan operation") + mytheme
 
-# ÏÂÃæ°´ÕÕÀàËÆµÄ²Ù×÷£¬½«ÆäÓà5ÖÖ½»Ò×ÀàĞÍµÄ¿Í»§·Ö²ãÇé¿ö·Ö±ğ»ã×Ü
+# ä¸‹é¢æŒ‰ç…§ç±»ä¼¼çš„æ“ä½œï¼Œå°†å…¶ä½™5ç§äº¤æ˜“ç±»å‹çš„å®¢æˆ·åˆ†å±‚æƒ…å†µåˆ†åˆ«æ±‡æ€»
 
 ### define a function
 getLabel <- function(data) {
   
-  data$rankR <- ifelse(data$rInternal > mean(data$rInternal), "¸ß", "µÍ")
-  data$rankF <- ifelse(data$frequency > mean(data$frequency), "¸ß", "µÍ")
-  data$rankM <- ifelse(data$monetary  > mean(data$monetary), "¸ß", "µÍ")
+  data$rankR <- ifelse(data$rInternal > mean(data$rInternal), "é«˜", "ä½")
+  data$rankF <- ifelse(data$frequency > mean(data$frequency), "é«˜", "ä½")
+  data$rankM <- ifelse(data$monetary  > mean(data$monetary), "é«˜", "ä½")
   
   label <- vector("character", nrow(data))
   data_lab <- within(data, {
     
-    label[rankR == "¸ß" & rankF == "¸ß" & rankM == "¸ß"] = "ÖØÒª¼ÛÖµ¿Í»§"
-    label[rankR == "¸ß" & rankF == "µÍ" & rankM == "¸ß"] = "ÖØÒª·¢Õ¹¿Í»§"  
-    label[rankR == "µÍ" & rankF == "¸ß" & rankM == "¸ß"] = "ÖØÒª±£³Ö¿Í»§"
-    label[rankR == "µÍ" & rankF == "µÍ" & rankM == "¸ß"] = "ÖØÒªÍìÁô¿Í»§"
+    label[rankR == "é«˜" & rankF == "é«˜" & rankM == "é«˜"] = "é‡è¦ä»·å€¼å®¢æˆ·"
+    label[rankR == "é«˜" & rankF == "ä½" & rankM == "é«˜"] = "é‡è¦å‘å±•å®¢æˆ·"  
+    label[rankR == "ä½" & rankF == "é«˜" & rankM == "é«˜"] = "é‡è¦ä¿æŒå®¢æˆ·"
+    label[rankR == "ä½" & rankF == "ä½" & rankM == "é«˜"] = "é‡è¦æŒ½ç•™å®¢æˆ·"
     
-    label[rankR == "¸ß" & rankF == "¸ß" & rankM == "µÍ"] = "Ò»°ã¼ÛÖµ¿Í»§"
-    label[rankR == "¸ß" & rankF == "µÍ" & rankM == "µÍ"] = "Ò»°ã·¢Õ¹¿Í»§"  
-    label[rankR == "µÍ" & rankF == "¸ß" & rankM == "µÍ"] = "Ò»°ã±£³Ö¿Í»§"
-    label[rankR == "µÍ" & rankF == "µÍ" & rankM == "µÍ"] = "Ò»°ãÍìÁô¿Í»§"
+    label[rankR == "é«˜" & rankF == "é«˜" & rankM == "ä½"] = "ä¸€èˆ¬ä»·å€¼å®¢æˆ·"
+    label[rankR == "é«˜" & rankF == "ä½" & rankM == "ä½"] = "ä¸€èˆ¬å‘å±•å®¢æˆ·"  
+    label[rankR == "ä½" & rankF == "é«˜" & rankM == "ä½"] = "ä¸€èˆ¬ä¿æŒå®¢æˆ·"
+    label[rankR == "ä½" & rankF == "ä½" & rankM == "ä½"] = "ä¸€èˆ¬æŒ½ç•™å®¢æˆ·"
     
   })
   
@@ -310,32 +312,32 @@ getLabel <- function(data) {
 }
 
 ## cash
-print("cash½»Ò×µÄ¿Í»§·Ö²ã±íÎª£º")
+print("cashäº¤æ˜“çš„å®¢æˆ·åˆ†å±‚è¡¨ä¸ºï¼š")
 getLabel(trans_cash)
 
 ## remit
-print("remit½»Ò×µÄ¿Í»§·Ö²ã±íÎª£º")
+print("remitäº¤æ˜“çš„å®¢æˆ·åˆ†å±‚è¡¨ä¸ºï¼š")
 getLabel(trans_remit)
 
 ## collection
-print("collection½»Ò×µÄ¿Í»§·Ö²ã±íÎª£º")
+print("collectionäº¤æ˜“çš„å®¢æˆ·åˆ†å±‚è¡¨ä¸ºï¼š")
 getLabel(trans_collection)
 
 ##cc_debit
-print("debit½»Ò×µÄ¿Í»§·Ö²ã±íÎª£º")
+print("debitäº¤æ˜“çš„å®¢æˆ·åˆ†å±‚è¡¨ä¸ºï¼š")
 getLabel(trans_cc_debit)
 
 ## unknown
-print("Î´Öª½»Ò×µÄ¿Í»§·Ö²ã±íÎª£º")
+print("æœªçŸ¥äº¤æ˜“çš„å®¢æˆ·åˆ†å±‚è¡¨ä¸ºï¼š")
 getLabel(trans_)
 
 
 
-### Á½Á½½»²æ·ÖÎö
+### ä¸¤ä¸¤äº¤å‰åˆ†æ
 
-# Õë¶Ôloan½»Ò×R£¬F£¬MÖĞµÄÁ½Á½Ö¸±ê½øĞĞ·ÖÎö£¬¹Û²ìÆäÊÇ·ñ´æÔÚÄ³ÖÖ¹æÂÉ¡£»æÖÆÁ¿Á½Á½Ö¸±ê¶ÔÓ¦µÄÉ¢µãÍ¼£º
+# é’ˆå¯¹loanäº¤æ˜“Rï¼ŒFï¼ŒMä¸­çš„ä¸¤ä¸¤æŒ‡æ ‡è¿›è¡Œåˆ†æï¼Œè§‚å¯Ÿå…¶æ˜¯å¦å­˜åœ¨æŸç§è§„å¾‹ã€‚ç»˜åˆ¶é‡ä¸¤ä¸¤æŒ‡æ ‡å¯¹åº”çš„æ•£ç‚¹å›¾ï¼š
 
-# ½»²æ·ÖÎöÍ¼
+# äº¤å‰åˆ†æå›¾
 rm <- ggplot(trans_loan_lab,aes(monetary,rInternal)) +
   geom_point(shape = 21, fill = 'steelblue',size = 1)
 fm <- ggplot(trans_loan_lab,aes(monetary,frequency)) +
@@ -345,14 +347,14 @@ rf <- ggplot(trans_loan_lab,aes(frequency,rInternal)) +
 gridExtra::grid.arrange(rm,fm,rf, ncol=1)
 
 
-## ¸½Â¼
-#' ÕâÀï¸ø³öÆäËûµÄµÈ¼¶»®·Ö±ê×¼£¬ÒÔ±ã¶Ô±È²»Í¬µÈ¼¶»®·Ö±ê×¼ÏÂµÄ·Ö²ã½á¹û¡£
-#' ÒÔloan½»Ò×ÎªÀı½øĞĞ·ÖÎö£¬ÆäÓà5ÖÖ½»Ò×ÀàĞÍµÄµÈ¼¶»®·Ö½á¹û¿ÉÒÔÀàËÆ¸ø³ö¡£
+## é™„å½•
+#' è¿™é‡Œç»™å‡ºå…¶ä»–çš„ç­‰çº§åˆ’åˆ†æ ‡å‡†ï¼Œä»¥ä¾¿å¯¹æ¯”ä¸åŒç­‰çº§åˆ’åˆ†æ ‡å‡†ä¸‹çš„åˆ†å±‚ç»“æœã€‚
+#' ä»¥loanäº¤æ˜“ä¸ºä¾‹è¿›è¡Œåˆ†æï¼Œå…¶ä½™5ç§äº¤æ˜“ç±»å‹çš„ç­‰çº§åˆ’åˆ†ç»“æœå¯ä»¥ç±»ä¼¼ç»™å‡ºã€‚
 
-#' µÈ¼¶»®·Ö±ê×¼2: ²ÉÓÃ·ÖÎ»Êı·½·¨½øĞĞ¿Í»§·Ö²ã¡£¸ù¾İ·ÖÎ»Êı·Ö±ğ¶Ô×î½üÒ»´Î½»Ò×¾àÀëÌìÊırInternal£¬
-#' ½»Ò×Æµ´Îfrequency£¬½»Ò××Ü½ğ¶îmonetary½øĞĞ´ò·Ö£¬¼ÇÎªĞÂµÄR£¬F£¬MÖ¸±ê¡£
-#' ¾ßÌåÀ´Ëµ£¬rInternal±íÊ¾Ä³¿Í»§×î½üÒ»´Î½»Ò×ÈÕÆÚ¾àÀë²ÎÕÕÈÕÆÚµÄÌìÊı£¬Îª¸ºÖµ£¬Òò´ËrInternalÔ½´ó£¬µÃ·ÖÔ½¸ß£» 
-#' frequencyÔ½´ó£¬µÃ·ÖÔ½¸ß£»monetaryÔ½´ó£¬µÃ·ÖÔ½¸ß¡£
+#' ç­‰çº§åˆ’åˆ†æ ‡å‡†2: é‡‡ç”¨åˆ†ä½æ•°æ–¹æ³•è¿›è¡Œå®¢æˆ·åˆ†å±‚ã€‚æ ¹æ®åˆ†ä½æ•°åˆ†åˆ«å¯¹æœ€è¿‘ä¸€æ¬¡äº¤æ˜“è·ç¦»å¤©æ•°rInternalï¼Œ
+#' äº¤æ˜“é¢‘æ¬¡frequencyï¼Œäº¤æ˜“æ€»é‡‘é¢monetaryè¿›è¡Œæ‰“åˆ†ï¼Œè®°ä¸ºæ–°çš„Rï¼ŒFï¼ŒMæŒ‡æ ‡ã€‚
+#' å…·ä½“æ¥è¯´ï¼ŒrInternalè¡¨ç¤ºæŸå®¢æˆ·æœ€è¿‘ä¸€æ¬¡äº¤æ˜“æ—¥æœŸè·ç¦»å‚ç…§æ—¥æœŸçš„å¤©æ•°ï¼Œä¸ºè´Ÿå€¼ï¼Œå› æ­¤rInternalè¶Šå¤§ï¼Œå¾—åˆ†è¶Šé«˜ï¼› 
+#' frequencyè¶Šå¤§ï¼Œå¾—åˆ†è¶Šé«˜ï¼›monetaryè¶Šå¤§ï¼Œå¾—åˆ†è¶Šé«˜ã€‚
 
 qr <- unique(quantile(trans_loan$rInternal))
 qf <- unique(quantile(trans_loan$frequency))
@@ -364,79 +366,79 @@ trans_loan_rfm <- trans_loan %>%
   mutate(Mone = as.integer(cut(monetary, breaks = c(-Inf, qm, Inf), labels = 1:(length(qm)+1)))) %>%
   select(-c(rankR, rankF, rankM, operation))
 
-# ¸ù¾İR£¬F£¬MµÄµÃ·Ö¶Ô¿Í»§½øĞĞ·ÖÀà£¬¸ßÓÚÆ½¾ùÖµÅĞ¶¨Îª¡°¸ß¡±£¬µÍÓÚÆ½¾ùÖµÅĞ¶¨Îª¡°µÍ¡±¡£
-trans_loan_rfm$rankR <- ifelse(trans_loan_rfm$Rece > mean(trans_loan_rfm$Rece), "¸ß", "µÍ")
-trans_loan_rfm$rankF <- ifelse(trans_loan_rfm$Freq > mean(trans_loan_rfm$Freq), "¸ß", "µÍ")
-trans_loan_rfm$rankM <- ifelse(trans_loan_rfm$Mone > mean(trans_loan_rfm$Mone), "¸ß", "µÍ")
+# æ ¹æ®Rï¼ŒFï¼ŒMçš„å¾—åˆ†å¯¹å®¢æˆ·è¿›è¡Œåˆ†ç±»ï¼Œé«˜äºå¹³å‡å€¼åˆ¤å®šä¸ºâ€œé«˜â€ï¼Œä½äºå¹³å‡å€¼åˆ¤å®šä¸ºâ€œä½â€ã€‚
+trans_loan_rfm$rankR <- ifelse(trans_loan_rfm$Rece > mean(trans_loan_rfm$Rece), "é«˜", "ä½")
+trans_loan_rfm$rankF <- ifelse(trans_loan_rfm$Freq > mean(trans_loan_rfm$Freq), "é«˜", "ä½")
+trans_loan_rfm$rankM <- ifelse(trans_loan_rfm$Mone > mean(trans_loan_rfm$Mone), "é«˜", "ä½")
 
 label <- vector("character", nrow(trans_loan_rfm))
 rfm_lab <- within(trans_loan_rfm, {
   
-  label[rankR == "¸ß" & rankF == "¸ß" & rankM == "¸ß"] = "ÖØÒª¼ÛÖµ¿Í»§"
-  label[rankR == "¸ß" & rankF == "µÍ" & rankM == "¸ß"] = "ÖØÒª·¢Õ¹¿Í»§"  
-  label[rankR == "µÍ" & rankF == "¸ß" & rankM == "¸ß"] = "ÖØÒª±£³Ö¿Í»§"
-  label[rankR == "µÍ" & rankF == "µÍ" & rankM == "¸ß"] = "ÖØÒªÍìÁô¿Í»§"
+  label[rankR == "é«˜" & rankF == "é«˜" & rankM == "é«˜"] = "é‡è¦ä»·å€¼å®¢æˆ·"
+  label[rankR == "é«˜" & rankF == "ä½" & rankM == "é«˜"] = "é‡è¦å‘å±•å®¢æˆ·"  
+  label[rankR == "ä½" & rankF == "é«˜" & rankM == "é«˜"] = "é‡è¦ä¿æŒå®¢æˆ·"
+  label[rankR == "ä½" & rankF == "ä½" & rankM == "é«˜"] = "é‡è¦æŒ½ç•™å®¢æˆ·"
   
-  label[rankR == "¸ß" & rankF == "¸ß" & rankM == "µÍ"] = "Ò»°ã¼ÛÖµ¿Í»§"
-  label[rankR == "¸ß" & rankF == "µÍ" & rankM == "µÍ"] = "Ò»°ã·¢Õ¹¿Í»§"  
-  label[rankR == "µÍ" & rankF == "¸ß" & rankM == "µÍ"] = "Ò»°ã±£³Ö¿Í»§"
-  label[rankR == "µÍ" & rankF == "µÍ" & rankM == "µÍ"] = "Ò»°ãÍìÁô¿Í»§"
+  label[rankR == "é«˜" & rankF == "é«˜" & rankM == "ä½"] = "ä¸€èˆ¬ä»·å€¼å®¢æˆ·"
+  label[rankR == "é«˜" & rankF == "ä½" & rankM == "ä½"] = "ä¸€èˆ¬å‘å±•å®¢æˆ·"  
+  label[rankR == "ä½" & rankF == "é«˜" & rankM == "ä½"] = "ä¸€èˆ¬ä¿æŒå®¢æˆ·"
+  label[rankR == "ä½" & rankF == "ä½" & rankM == "ä½"] = "ä¸€èˆ¬æŒ½ç•™å®¢æˆ·"
   
 })
 
 rfm_lab
 
 
-# »ã×ÜÍ³¼Æ¸÷¸ö¿Í»§×éµÄÈËÊıºÍÕ¼±ÈÇé¿ö£¬»æÖÆÏàÓ¦µÄÌõĞÎÍ¼£º
+# æ±‡æ€»ç»Ÿè®¡å„ä¸ªå®¢æˆ·ç»„çš„äººæ•°å’Œå æ¯”æƒ…å†µï¼Œç»˜åˆ¶ç›¸åº”çš„æ¡å½¢å›¾ï¼š
 app_group <- cbind(count = table(rfm_lab$label), 
                    prop = round(table(rfm_lab$label) / nrow(rfm_lab), 4))
 
 ggplot(data = rfm_lab) + geom_bar(mapping = aes(x = label)) + mytheme
 
-# »ã×Ü¸÷¸ö¿Í»§×éµÄrecency£¬frequency£¬monetaryµÄ¾ùÖµºÍÖĞÎ»Êı
+# æ±‡æ€»å„ä¸ªå®¢æˆ·ç»„çš„recencyï¼Œfrequencyï¼Œmonetaryçš„å‡å€¼å’Œä¸­ä½æ•°
 rfm_lab %>% group_by(label) %>% 
   summarize(rmean = mean(rInternal), rmedian = median(rInternal), rsd = sd(rInternal),
             fmean = mean(frequency), fmedian = median(frequency), fsd = sd(frequency),
             mmean = mean(monetary),  mmedian = median(monetary),  msd = sd(monetary),
             .groups = "drop")
 
-#' µÈ¼¶»®·Ö±ê×¼3£º²ÉÓÃ¾ÛÀà·½·¨½øĞĞ¿Í»§·Ö²ã¡£ÕâÀï×öÒ»¸ö¼òµ¥µÄÀı×ÓÌá¹©²Î¿¼£¬ÓÉÓÚÊı¾İ±¾Éí±È½Ï¼òµ¥£¬
-#' ¸ù¾İRFMÈı¸öÖ¸±êµÄ»°Ê¹ÓÃ¾ùÖµ»òÕß·ÖÎ»ÊıµÄ·Ö²ã·½·¨¾Í×ã¹»¡£½øĞĞ¾ÛÀàÇ°µÄ»ù±¾²Ù×÷ÓĞ,¿ÉÑ¡£º
-#' 1. R£¬F£¬MÈı¸öÖ¸±ê±ê×¼»¯;
-#' 2. R£¬F£¬MÈı¸öÖ¸±ê¼ÓÈ¨; 
-#' 3. ¼ÓÈ¨×ÛºÏRFMÖ¸±ê;
-#' ¸ù¾İÒÔÉÏ²Ù×÷µÃµ½µÄĞÂÖ¸±ê½øĞĞK-Means¾ÛÀà²¢×÷½á¹û·ÖÎö¡£
+#' ç­‰çº§åˆ’åˆ†æ ‡å‡†3ï¼šé‡‡ç”¨èšç±»æ–¹æ³•è¿›è¡Œå®¢æˆ·åˆ†å±‚ã€‚è¿™é‡Œåšä¸€ä¸ªç®€å•çš„ä¾‹å­æä¾›å‚è€ƒï¼Œç”±äºæ•°æ®æœ¬èº«æ¯”è¾ƒç®€å•ï¼Œ
+#' æ ¹æ®RFMä¸‰ä¸ªæŒ‡æ ‡çš„è¯ä½¿ç”¨å‡å€¼æˆ–è€…åˆ†ä½æ•°çš„åˆ†å±‚æ–¹æ³•å°±è¶³å¤Ÿã€‚è¿›è¡Œèšç±»å‰çš„åŸºæœ¬æ“ä½œæœ‰,å¯é€‰ï¼š
+#' 1. Rï¼ŒFï¼ŒMä¸‰ä¸ªæŒ‡æ ‡æ ‡å‡†åŒ–;
+#' 2. Rï¼ŒFï¼ŒMä¸‰ä¸ªæŒ‡æ ‡åŠ æƒ; 
+#' 3. åŠ æƒç»¼åˆRFMæŒ‡æ ‡;
+#' æ ¹æ®ä»¥ä¸Šæ“ä½œå¾—åˆ°çš„æ–°æŒ‡æ ‡è¿›è¡ŒK-Meansèšç±»å¹¶ä½œç»“æœåˆ†æã€‚
 
-# Ê×ÏÈ±ê×¼»¯R£¬F£¬MÈı¸öÖ¸±ê£¬¸ù¾İR£¬F£¬MÈı¸öÖ¸±ê¶Ô¿Í»§·Ö²ãµÄÖØÒª³Ì¶È¼ÓÈ¨µÃµ½ĞÂµÄRFMÖ¸±ê£¬
-# ÕâÀïÎÒÃÇ¾ÙÀı¶ÔR¸³È¨0.2£¬¶ÔF¸³È¨0.3£¬¶ÔM¸³È¨0.5¡£
+# é¦–å…ˆæ ‡å‡†åŒ–Rï¼ŒFï¼ŒMä¸‰ä¸ªæŒ‡æ ‡ï¼Œæ ¹æ®Rï¼ŒFï¼ŒMä¸‰ä¸ªæŒ‡æ ‡å¯¹å®¢æˆ·åˆ†å±‚çš„é‡è¦ç¨‹åº¦åŠ æƒå¾—åˆ°æ–°çš„RFMæŒ‡æ ‡ï¼Œ
+# è¿™é‡Œæˆ‘ä»¬ä¸¾ä¾‹å¯¹Rèµ‹æƒ0.2ï¼Œå¯¹Fèµ‹æƒ0.3ï¼Œå¯¹Mèµ‹æƒ0.5ã€‚
 loan_model <- trans_loan[, c("rInternal", "frequency", "monetary")]
 loan_new <- apply(loan_model, 2, scale) %>% as_tibble() %>% mutate(WZR = 0.2*rInternal) %>%
   mutate(WZF = 0.3*frequency) %>% mutate(WZM = 0.5*monetary) %>% select(WZR, WZF, WZM)
 
-# ÀûÓÃ¼ÓÈ¨ºóµÄÌØÕ÷½øĞĞ¾ÛÀà
+# åˆ©ç”¨åŠ æƒåçš„ç‰¹å¾è¿›è¡Œèšç±»
 if(!require(factoextra)) {install.packages("factoextra"); library(factoextra)}
 
 km_loan <- kmeans(loan_new, 8)
 loan_clust <- tibble(loan_new, clust = km_loan$cluster)
 
-##¶Ô±ÈÃ¿Àà¿Í»§µÄRFM¾ùÖµÓë×ÜµÄRFM¾ùÖµ£¬´óÓÚ×ÜÆ½¾ùÖµ¼ÇÎª¡°¸ß¡±£¬ Ğ¡ÓÚ×ÜÆ½¾ùÖµ¼ÇÎª¡°µÍ¡±
+##å¯¹æ¯”æ¯ç±»å®¢æˆ·çš„RFMå‡å€¼ä¸æ€»çš„RFMå‡å€¼ï¼Œå¤§äºæ€»å¹³å‡å€¼è®°ä¸ºâ€œé«˜â€ï¼Œ å°äºæ€»å¹³å‡å€¼è®°ä¸ºâ€œä½â€
 clust_center <- as_tibble(km_loan$centers)
 clust_center <- clust_center %>% 
-  mutate(rankR = ifelse(clust_center[["WZR"]] > apply(loan_new, 2, median)[1], "¸ß", "µÍ")) %>%
-  mutate(rankF = ifelse(clust_center[["WZF"]] > apply(loan_new, 2, median)[2], "¸ß", "µÍ")) %>%
-  mutate(rankM = ifelse(clust_center[["WZM"]] > apply(loan_new, 2, median)[3], "¸ß", "µÍ")) 
+  mutate(rankR = ifelse(clust_center[["WZR"]] > apply(loan_new, 2, median)[1], "é«˜", "ä½")) %>%
+  mutate(rankF = ifelse(clust_center[["WZF"]] > apply(loan_new, 2, median)[2], "é«˜", "ä½")) %>%
+  mutate(rankM = ifelse(clust_center[["WZM"]] > apply(loan_new, 2, median)[3], "é«˜", "ä½")) 
 
 custom <- vector("character", length = 8)
 clust_center <- within(clust_center, {
-  custom[rankR == "¸ß" & rankF == "¸ß" & rankM == "¸ß"] = "ÖØÒª¼ÛÖµ¿Í»§"
-  custom[rankR == "¸ß" & rankF == "µÍ" & rankM == "¸ß"] = "ÖØÒª·¢Õ¹¿Í»§"  
-  custom[rankR == "µÍ" & rankF == "¸ß" & rankM == "¸ß"] = "ÖØÒª±£³Ö¿Í»§"
-  custom[rankR == "µÍ" & rankF == "µÍ" & rankM == "¸ß"] = "ÖØÒªÍìÁô¿Í»§"
+  custom[rankR == "é«˜" & rankF == "é«˜" & rankM == "é«˜"] = "é‡è¦ä»·å€¼å®¢æˆ·"
+  custom[rankR == "é«˜" & rankF == "ä½" & rankM == "é«˜"] = "é‡è¦å‘å±•å®¢æˆ·"  
+  custom[rankR == "ä½" & rankF == "é«˜" & rankM == "é«˜"] = "é‡è¦ä¿æŒå®¢æˆ·"
+  custom[rankR == "ä½" & rankF == "ä½" & rankM == "é«˜"] = "é‡è¦æŒ½ç•™å®¢æˆ·"
   
-  custom[rankR == "¸ß" & rankF == "¸ß" & rankM == "µÍ"] = "Ò»°ã¼ÛÖµ¿Í»§"
-  custom[rankR == "¸ß" & rankF == "µÍ" & rankM == "µÍ"] = "Ò»°ã·¢Õ¹¿Í»§"  
-  custom[rankR == "µÍ" & rankF == "¸ß" & rankM == "µÍ"] = "Ò»°ã±£³Ö¿Í»§"
-  custom[rankR == "µÍ" & rankF == "µÍ" & rankM == "µÍ"] = "Ò»°ãÍìÁô¿Í»§"
+  custom[rankR == "é«˜" & rankF == "é«˜" & rankM == "ä½"] = "ä¸€èˆ¬ä»·å€¼å®¢æˆ·"
+  custom[rankR == "é«˜" & rankF == "ä½" & rankM == "ä½"] = "ä¸€èˆ¬å‘å±•å®¢æˆ·"  
+  custom[rankR == "ä½" & rankF == "é«˜" & rankM == "ä½"] = "ä¸€èˆ¬ä¿æŒå®¢æˆ·"
+  custom[rankR == "ä½" & rankF == "ä½" & rankM == "ä½"] = "ä¸€èˆ¬æŒ½ç•™å®¢æˆ·"
 })
 
 clust_refer <- tibble(clust = 1:8, custom = clust_center$custom)
